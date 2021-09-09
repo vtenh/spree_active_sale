@@ -23,6 +23,8 @@ module Spree
     delegate :promotion_rules, to: :promotion
     delegate :promotion_actions, to: :promotion
 
+    scope :active, -> { where(is_active: true) }
+
     class << self
       # Spree::ActiveSaleEvent.is_live? method
       # should only/ always represents live and active events and not just live events.
