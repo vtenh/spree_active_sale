@@ -1,7 +1,7 @@
 module Spree
   module Admin
     class ActiveSalesController < ResourceController
-      before_filter :load_data, :except => :index
+      before_action :load_data, :except => :index
 
       def index
         session[:return_to] = request.url
@@ -26,7 +26,7 @@ module Spree
       end
 
       def search
-        params[:q].blank? ? [] : @products = Spree::Product.limit(20).search(:name_cont => params[:q]).result
+        params[:q].blank? ? [] : @products = Spree::Product.limit(20).ransack(:name_cont => params[:q]).result
       end
 
       private
@@ -43,19 +43,20 @@ module Spree
         def load_data
           @taxons = Taxon.order(:name)
           @shipping_categories = ShippingCategory.order(:name)
+          @promotions = Spree::PromotionCategory.active_sale.promotions
         end
 
         def collection
           return @collection if @collection.present?
           params[:q] ||= {}
           params[:q][:deleted_at_null] ||= "1"
-          
+
           params[:q][:s] ||= "name asc"
 
           @search = super.ransack(params[:q])
 
           @search = Spree::ActiveSale.includes(:active_sale_events).ransack(params[:q])
-          @collection = @search.result.page(params[:page]).per(Spree::ActiveSaleConfig[:admin_active_sales_per_page])
+          @collection = @search.result.page(params[:page]).per(SpreeActiveSale::Config[:admin_active_sales_per_page])
         end
     end
   end

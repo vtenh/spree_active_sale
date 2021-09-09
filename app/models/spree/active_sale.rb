@@ -4,21 +4,23 @@
 #
 module Spree
   class ActiveSale < ActiveRecord::Base
-    has_many :active_sale_events, :conditions => { :deleted_at => nil }, :dependent => :destroy
-
-    attr_accessible :name, :permalink
+    has_many :active_sale_events, -> { where(deleted_at: nil) }, :dependent => :destroy
 
     validates :name, :permalink, :presence => true
     validates :permalink, :uniqueness => true
 
-    default_scope :order => "#{self.table_name}.position"
-
-    make_permalink :order => :name
+    default_scope { order("#{self.table_name}.position") }
 
     accepts_nested_attributes_for :active_sale_events, :allow_destroy => true, :reject_if => lambda { |attrs| attrs.all? { |k, v| v.blank? } }
 
+    before_validation :update_permalink
+
+    def update_permalink
+      self.permalink = self.name.parameterize if self.permalink.blank?
+    end
+
     def self.config(&block)
-      yield(Spree::ActiveSaleConfig)
+      yield(SpreeActiveSale::Config)
     end
 
     # override the delete method to set deleted_at value
@@ -35,6 +37,7 @@ module Spree
     def events
       self.active_sale_events
     end
+
     alias :schedules :events
   end
 end

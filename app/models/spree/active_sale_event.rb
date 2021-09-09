@@ -4,25 +4,27 @@
 #
 module Spree
   class ActiveSaleEvent < ActiveRecord::Base
-    has_many :sale_images, :as => :viewable, :dependent => :destroy, :order => 'position ASC'
-    has_many :sale_products, :dependent => :destroy, :order => "#{Spree::SaleProduct.table_name}.position ASC"
-    has_many :products, :through => :sale_products, :order => "#{Spree::SaleProduct.table_name}.position ASC"
-    has_many :sale_taxons, :dependent => :destroy, :order => "#{Spree::SaleTaxon.table_name}.position ASC"
-    has_many :taxons, :through => :sale_taxons, :order => "#{Spree::SaleTaxon.table_name}.position ASC"
+    has_many :sale_images, -> { order(position: :asc) },  :as => :viewable, :dependent => :destroy
+    has_many :sale_products, -> { order(position: :asc) }, :dependent => :destroy
+    has_many :products, -> { order(position: :asc) }, :through => :sale_products
+    has_many :sale_taxons, -> { order(position: :asc) }, :dependent => :destroy
+    has_many :taxons, -> { order(position: :asc) }, :through => :sale_taxons
     has_many :sale_properties, :dependent => :destroy
     has_many :properties, :through => :sale_properties
 
     belongs_to :active_sale
+    belongs_to :promotion, class_name: "Spree::Promotion"
 
-    attr_accessible :description, :end_date, :is_active, :is_hidden, :is_permanent, :name, :active_sale_id, :start_date, :discount, :taxon_ids, :shipping_category_id, :single_product_sale
-
-    validates :name, :start_date, :end_date, :active_sale_id, :presence => true
+    validates :name, :start_date, :end_date, :active_sale_id, :promotion_id, :presence => true
 
     validate  :validate_start_and_end_date
     validate  :validate_with_live_event
 
+    delegate :promotion_rules, to: :promotion
+    delegate :promotion_actions, to: :promotion
+
     class << self
-      # Spree::ActiveSaleEvent.is_live? method 
+      # Spree::ActiveSaleEvent.is_live? method
       # should only/ always represents live and active events and not just live events.
       def is_live? object
         object_class_name = object.class.name
@@ -39,7 +41,7 @@ module Spree
 
         def prepare_pagination(options)
           per_page = options[:per_page].to_i
-          options[:per_page] = per_page > 0 ? per_page : Spree::ActiveSaleConfig[:active_sale_events_per_page]
+          options[:per_page] = per_page > 0 ? per_page : SpreeActiveSale::Config[:active_sale_events_per_page]
           page = options[:page].to_i
           options[:page] = page > 0 ? page : 1
           options
