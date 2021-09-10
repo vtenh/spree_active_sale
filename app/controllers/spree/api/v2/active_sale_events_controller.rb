@@ -1,13 +1,14 @@
 module Spree
   module Api
     module V2
-      class ActiveSaleEventsController < Spree::Api::V2::ResourceOwnerController
+      class ActiveSaleEventsController < ResourceController
         def collection
-          Spree::ActiveSaleEvent.active
+          # params["include"] = "product"
+          Spree::ActiveSaleEvent.active.includes(:highlight_products, sale_images: :attachment_blob)
         end
 
         def collection_serializer
-          Spree::V2::ActiveSaleEventSerializer
+          Spree::V2::ActiveSale::ActiveSaleEventSerializer
         end
       end
     end
